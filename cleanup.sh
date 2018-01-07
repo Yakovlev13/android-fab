@@ -7,7 +7,7 @@ echo "Running $0 at $now"
 
 set -e
 
-keepDaily=7
+keepDaily=6
 keepWeekly=4
 keepMonthly=6
 
