@@ -1,5 +1,10 @@
 #!/bin/bash
 
+now=$(date)
+echo ""
+echo ""
+echo "Running $0 at $now"
+
 set -e
 set -v
 

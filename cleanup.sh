@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 
-set -e
+now=$(date)
+echo ""
+echo ""
+echo "Running $0 at $now"
 
-echo "Running at "$(date -Iseconds)
+set -e
 
 keepDaily=7
 keepWeekly=4
