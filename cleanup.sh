@@ -2,8 +2,10 @@
 
 set -e
 
+echo "Running at "$(date -Iseconds)
+
 keepDaily=7
-keepWeekly=1
+keepWeekly=4
 keepMonthly=6
 
 allFiles=$(aws s3 ls s3://mormesher.backups | awk '{ print $4 }')
