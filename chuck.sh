@@ -10,7 +10,7 @@ else
 fi
 
 touch "/tmp/$filename"
-#trap "echo rm -f /tmp/$filename" EXIT
+trap "echo rm -f /tmp/$filename" EXIT
 
 # create dumps
 dumpFolder="/tmp/dumps-`date -Iseconds`"
@@ -19,6 +19,7 @@ mkdir "$dumpFolder"
 dpkg -l > "$dumpFolder/dpkg-l.txt"
 apt-mark showmanual > "$dumpFolder/apt-mark-manual.txt"
 mysqldump --all-databases > "$dumpFolder/mysqldump.txt"
+pg_dumpall > "$dumpFolder/pgdump.txt"
 
 # create tar file, compress and encrypt
 tar -cpf - \
@@ -29,7 +30,6 @@ tar -cpf - \
 	--exclude="build" \
 	--exclude="/var/www/owncloud/data/*/files_trashbin" \
 	--exclude="/var/www/owncloud/data/*/files_versions" \
-	--exclude="build" \
 	"$dumpFolder" \
 	"/etc/apt" \
 	"/home/markormesher/.gnupg" \
