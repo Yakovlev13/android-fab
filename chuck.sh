@@ -1,6 +1,13 @@
 #!/bin/bash
 
-# file name
+set -e
+set -v
+
+# cleanup ownCloud before backing up
+sudo -u www-data php /var/www/owncloud/occ files:scan --all
+sudo -u www-data php /var/www/owncloud/occ files:cleanup
+
+# backup file name
 if [[ $(date +%d) -eq 1 ]]; then
 	filename="chuck-monthly-`date -Iseconds`.tar.xz.gpg"
 elif [[ $(date +%u) -eq 7 ]]; then
@@ -9,17 +16,21 @@ else
 	filename="chuck-daily-`date -Iseconds`.tar.xz.gpg"
 fi
 
+echo "Backup file: /tmp/$filename"
 touch "/tmp/$filename"
-trap "echo rm -f /tmp/$filename" EXIT
 
 # create dumps
 dumpFolder="/tmp/dumps-`date -Iseconds`"
 mkdir "$dumpFolder"
+echo "Dump folder: $dumpFolder"
 
 dpkg -l > "$dumpFolder/dpkg-l.txt"
 apt-mark showmanual > "$dumpFolder/apt-mark-manual.txt"
 mysqldump --all-databases > "$dumpFolder/mysqldump.txt"
 pg_dumpall > "$dumpFolder/pgdump.txt"
+
+# cleanup when this is all over
+trap "rm -rf /tmp/$filename $dumpFolder" EXIT
 
 # create tar file, compress and encrypt
 tar -cpf - \
