@@ -44,6 +44,7 @@ tar -cpf - \
 	--exclude=".git" \
 	--exclude="node_modules" \
 	--exclude="build" \
+	--exclude="dist" \
 	--exclude="/var/www/owncloud/data/*/files_trashbin" \
 	--exclude="/var/www/owncloud/data/*/files_versions" \
 	"$dumpFolder" \
