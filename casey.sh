@@ -1,37 +1,32 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-now=$(date)
+now=$(date -Iseconds)
 echo ""
 echo ""
 echo "Running $0 at $now"
 
 set -e
-set -v
 
-# file name
 if [[ $(date +%d) -eq 1 ]]; then
-	filename="casey-monthly-`date -Iseconds`.tar.xz.gpg"
+	backupType="monthly"
 elif [[ $(date +%u) -eq 7 ]]; then
-	filename="casey-weekly-`date -Iseconds`.tar.xz.gpg"
+	backupType="weekly"
 else
-	filename="casey-daily-`date -Iseconds`.tar.xz.gpg"
+	backupType="daily"
 fi
-
-echo "Backup file: /tmp/$filename"
+filename="casey-$backupType-$now.tar.xz.gpg"
 touch "/tmp/$filename"
+echo "Backup file: /tmp/$filename"
 
-# create dumps
 dumpFolder="/tmp/dumps-`date -Iseconds`"
 mkdir "$dumpFolder"
 echo "Dump folder: $dumpFolder"
 
+trap "rm -rf /tmp/$filename $dumpFolder" EXIT
+
 dpkg -l > "$dumpFolder/dpkg-l.txt"
 apt-mark showmanual > "$dumpFolder/apt-mark-manual.txt"
 
-# cleanup when this is all over
-trap "rm -rf /tmp/$filename $dumpFolder" EXIT
-
-# create tar file, compress and encrypt
 tar -cpf - \
 	--exclude=".csync_journal.db*" \
 	--exclude=".owncloudsync*" \
@@ -49,5 +44,4 @@ tar -cpf - \
 	"/home/markormesher/Projects" \
 	"/home/markormesher/Tools" | xz -4 -c | gpg2 -e -r "me@markormesher.co.uk" > "/tmp/$filename"
 
-# upload
 aws s3 cp "/tmp/$filename" "s3://mormesher.backups/$filename"
