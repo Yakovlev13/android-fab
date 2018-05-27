@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
+source $HOME/.bash_aliases
+
 now=$(date -Iseconds)
-echo ""
-echo ""
 echo "Running $0 at $now"
 
 set -e
@@ -24,44 +24,49 @@ echo "Dump folder: $dumpFolder"
 
 trap "rm -rf /tmp/$filename $dumpFolder" EXIT
 
-if [[ "$backupType" = "daily" ]]; then
-	mysqldump --all-databases > "$dumpFolder/mysqldump.txt"
-	pg_dumpall > "$dumpFolder/pgdump.txt"
+# grab info about installed packages
+dpkg -l > "$dumpFolder/dpkg-l.txt"
+apt-mark showmanual > "$dumpFolder/apt-mark-manual.txt"
 
-	tar -cpf - \
-		--exclude=".csync_journal.db*" \
-		--exclude=".owncloudsync*" \
-		--exclude=".git" \
-		--exclude="node_modules" \
-		--exclude="build" \
-		--exclude="dist" \
-		--exclude="/var/www/owncloud/data/*/files_trashbin" \
-		--exclude="/var/www/owncloud/data/*/files_versions" \
-		"$dumpFolder" | xz -4 -c | gpg2 -e -r "me@markormesher.co.uk" > "/tmp/$filename"
-else
-	sudo -u www-data php /var/www/owncloud/occ files:scan --all
-	sudo -u www-data php /var/www/owncloud/occ files:cleanup
+# backup docker volumes
+function backupVolumes {
+	projectPath=$1
+	shift
 
-	dpkg -l > "$dumpFolder/dpkg-l.txt"
-	apt-mark showmanual > "$dumpFolder/apt-mark-manual.txt"
-	mysqldump --all-databases > "$dumpFolder/mysqldump.txt"
-	pg_dumpall > "$dumpFolder/pgdump.txt"
+	if [ ! -d "$projectPath" ]; then
+		echo "Project path $projectPath does not exist!"
+		exit 1
+	fi
 
-	tar -cpf - \
-		--exclude=".csync_journal.db*" \
-		--exclude=".owncloudsync*" \
-		--exclude=".git" \
-		--exclude="node_modules" \
-		--exclude="build" \
-		--exclude="dist" \
-		--exclude="/var/www/owncloud/data/*/files_trashbin" \
-		--exclude="/var/www/owncloud/data/*/files_versions" \
-		"$dumpFolder" \
-		"/etc/apt" \
-		"/home/markormesher/.gnupg" \
-		"/home/markormesher/.ssh" \
-		"/var/www" \
-		"/var/node" | xz -4 -c | gpg2 -e -r "me@markormesher.co.uk" > "/tmp/$filename"
-fi
+	echo "Stopping containers in $projectPath"
+	docker-compose -f $projectPath/docker-compose.yml stop
+	for volume in "$@"; do
+		echo "Backing up $volume"
+		$HOME/dotfiles/bin/backup-volume $volume > "$dumpFolder/$volume.tar"
+	done
+	echo "Starting containers in $projectPath"
+	docker-compose -f $projectPath/docker-compose.yml start
+}
+
+backupVolumes /var/web/atlas.markormesher.co.uk atlasmarkormeshercouk_postgres-data
+backupVolumes /var/web/money-dashboard.markormesher.co.uk moneydashboardmarkormeshercouk_postgres-data
+backupVolumes /var/web/tracker.markormesher.co.uk trackermarkormeshercouk_postgres-data
+
+tar -cpf - \
+	--exclude=".csync_journal.db*" \
+	--exclude=".owncloudsync*" \
+	--exclude=".git" \
+	--exclude="node_modules" \
+	--exclude="build" \
+	--exclude="dist" \
+	--exclude="/var/www/owncloud/data/*/files_trashbin" \
+	--exclude="/var/www/owncloud/data/*/files_versions" \
+	"$dumpFolder" \
+	"/etc/apt" \
+	"/home/markormesher/.gnupg" \
+	"/home/markormesher/.ssh" \
+	| xz -4 -c | gpg2 -e -r "me@markormesher.co.uk" > "/tmp/$filename"
+
+du -h /tmp/$filename
 
 aws s3 cp "/tmp/$filename" "s3://mormesher.backups/$filename"
