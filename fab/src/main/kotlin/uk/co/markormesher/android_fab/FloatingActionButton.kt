@@ -441,8 +441,8 @@ class FloatingActionButton: RelativeLayout {
 
 		content_cover.visibility = View.VISIBLE
 		content_cover.animate()
-				.scaleX(if (isSpeedDialMenuOpen) 50f else 0f)
-				.scaleY(if (isSpeedDialMenuOpen) 50f else 0f)
+				.scaleX(if (isSpeedDialMenuOpen) 60f else 0f)
+				.scaleY(if (isSpeedDialMenuOpen) 60f else 0f)
 				.alpha(if (isSpeedDialMenuOpen) 1f else 0f)
 				.setDuration(SPEED_DIAL_ANIMATION_DURATION)
 				.setListener(object: AnimatorListenerAdapter() {
